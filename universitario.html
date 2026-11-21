@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aterriza | Acceso</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#0f3460,#1a5276);font-family:Arial,sans-serif;color:#202833}
+    .contenedor{width:min(100%,440px);background:#fff;border-radius:18px;padding:30px;box-shadow:0 18px 50px #06182c55}
+    h1{text-align:center;color:#0f3460;margin:0 0 8px}.subtitulo{text-align:center;color:#66717d;margin:0 0 24px}
+    .botones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+    button{border:0;border-radius:10px;padding:13px 10px;font-size:15px;font-weight:bold;cursor:pointer}
+    .tab{background:#eaf0f6;color:#0f3460}.tab.activo,.enviar{background:#0f3460;color:#fff}.formulario[hidden]{display:none}
+    label{display:block;font-weight:bold;font-size:14px;margin:14px 0 6px}input{width:100%;padding:12px;border:1px solid #cbd4df;border-radius:9px;font-size:15px;outline:none}input:focus{border-color:#0f3460;box-shadow:0 0 0 3px #0f34601a}
+    .enviar{width:100%;margin-top:20px}.mensaje{margin-top:15px;padding:11px;border-radius:8px;font-size:14px;display:none}.mensaje.ok{display:block;background:#e8f7ee;color:#176638}.mensaje.error{display:block;background:#fdecec;color:#a12424}
+    .nota{text-align:center;color:#75808b;font-size:12px;margin:18px 0 0;line-height:1.5}
+  </style>
+</head>
+<body>
+  <main class="contenedor">
+    <h1>Bienvenido a Aterriza</h1>
+    <p class="subtitulo">Ingresa a tu cuenta o crea una nueva.</p>
+
+    <div class="botones">
+      <button type="button" class="tab activo" id="btnLogin" aria-controls="formLogin" aria-pressed="true">Iniciar sesión</button>
+      <button type="button" class="tab" id="btnRegistro" aria-controls="formRegistro" aria-pressed="false">Crear usuario</button>
+    </div>
+
+    <form id="formLogin" class="formulario">
+      <label for="loginCorreo">Correo electrónico</label>
+      <input type="email" id="loginCorreo" name="correo" autocomplete="email" required>
+      <label for="loginPassword">Contraseña</label>
+      <input type="password" id="loginPassword" name="password" autocomplete="current-password" required>
+      <button class="enviar" type="submit">Entrar</button>
+    </form>
+
+    <form id="formRegistro" class="formulario" hidden>
+      <label for="nombre">Nombre completo</label>
+      <input type="text" id="nombre" name="nombre" autocomplete="name" maxlength="100" required>
+      <label for="universidad">Universidad</label>
+      <input type="text" id="universidad" name="universidad" maxlength="150" placeholder="Ej. Universidad Técnica de Oruro" required>
+      <label for="carrera">Carrera</label>
+      <input type="text" id="carrera" name="carrera" maxlength="150" placeholder="Ej. Ingeniería de Sistemas" required>
+      <label for="registroCorreo">Correo electrónico</label>
+      <input type="email" id="registroCorreo" name="correo" autocomplete="email" required>
+      <label for="registroPassword">Crear contraseña</label>
+      <input type="password" id="registroPassword" name="password" autocomplete="new-password" minlength="8" required>
+      <label for="confirmarPassword">Confirmar contraseña</label>
+      <input type="password" id="confirmarPassword" name="confirmar_password" autocomplete="new-password" minlength="8" required>
+      <button class="enviar" type="submit">Crear cuenta</button>
+    </form>
+
+    <div id="mensaje" class="mensaje" role="status" aria-live="polite"></div>
+    <p class="nota">Tus datos se envían al servidor de Aterriza. Las contraseñas deben almacenarse cifradas mediante hash en el servidor.</p>
+  </main>
+
+  <script>
+    // Cambia estas rutas si tu backend utiliza otras direcciones.
+    const API_LOGIN = 'api/login.php';
+    const API_REGISTRO = 'api/registro.php';
+
+    const btnLogin = document.getElementById('btnLogin');
+    const btnRegistro = document.getElementById('btnRegistro');
+    const formLogin = document.getElementById('formLogin');
+    const formRegistro = document.getElementById('formRegistro');
+    const mensaje = document.getElementById('mensaje');
+
+    function mostrarFormulario(tipo) {
+      const login = tipo === 'login';
+      formLogin.hidden = !login;
+      formRegistro.hidden = login;
+      btnLogin.classList.toggle('activo', login);
+      btnRegistro.classList.toggle('activo', !login);
+      btnLogin.setAttribute('aria-pressed', String(login));
+      btnRegistro.setAttribute('aria-pressed', String(!login));
+      mensaje.className = 'mensaje';
+      mensaje.textContent = '';
+    }
+    btnLogin.addEventListener('click', () => mostrarFormulario('login'));
+    btnRegistro.addEventListener('click', () => mostrarFormulario('registro'));
+
+    function mostrarMensaje(texto, tipo) {
+      mensaje.textContent = texto;
+      mensaje.className = 'mensaje ' + tipo;
+    }
+
+    async function enviarFormulario(url, datos) {
+      try {
+        const respuesta = await fetch(url, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(datos)
+        });
+        const resultado = await respuesta.json();
+        if (!respuesta.ok || !resultado.ok) throw new Error(resultado.mensaje || 'No se pudo completar la operación.');
+        mostrarMensaje(resultado.mensaje || 'Operación realizada correctamente.', 'ok');
+        if (resultado.redirect) window.location.href = resultado.redirect;
+      } catch (error) {
+        mostrarMensaje(error.message || 'No se pudo conectar con el servidor.', 'error');
+      }
+    }
+
+    formRegistro.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const password = document.getElementById('registroPassword').value;
+      const confirmar = document.getElementById('confirmarPassword').value;
+      if (password !== confirmar) return mostrarMensaje('Las contraseñas no coinciden.', 'error');
+      enviarFormulario(API_REGISTRO, {
+        nombre: document.getElementById('nombre').value.trim(),
+        universidad: document.getElementById('universidad').value.trim(),
+        carrera: document.getElementById('carrera').value.trim(),
+        correo: document.getElementById('registroCorreo').value.trim(),
+        password
+      });
+    });
+
+    formLogin.addEventListener('submit', (e) => {
+      e.preventDefault();
+      enviarFormulario(API_LOGIN, {
+        correo: document.getElementById('loginCorreo').value.trim(),
+        password: document.getElementById('loginPassword').value
+      });
+    });
+  </script>
+</body>
+</html>

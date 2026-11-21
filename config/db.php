@@ -39,9 +39,42 @@ $dbUser = getEnvironmentValue('DB_USER') ?? getEnvironmentValue('MYSQLUSER') ?? 
 $dbPass = getEnvironmentValue('DB_PASS') ?? getEnvironmentValue('MYSQLPASSWORD') ?? $urlConfig['pass'] ?? '';
 $dbPort = getEnvironmentValue('DB_PORT') ?? getEnvironmentValue('MYSQLPORT') ?? $urlConfig['port'] ?? '3306';
 
-$pdo = new PDO(
-    "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4",
-    $dbUser,
-    $dbPass,
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-);
+function responder(bool $ok, string $mensaje, array $extra = [], int $codigo = 200): void
+{
+    http_response_code($codigo);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(array_merge(['ok' => $ok, 'mensaje' => $mensaje], $extra), JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function leer_json(): array
+{
+    $datos = json_decode(file_get_contents('php://input'), true);
+    return is_array($datos) ? $datos : [];
+}
+
+function requiere_sesion(): array
+{
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    if (empty($_SESSION['usuario_id'])) responder(false, 'Debes iniciar sesión.', [], 401);
+    return ['id' => (int) $_SESSION['usuario_id'], 'nombre' => $_SESSION['nombre'], 'rol' => $_SESSION['rol']];
+}
+
+function son_amigos(PDO $pdo, int $a, int $b): bool
+{
+    [$x, $y] = $a < $b ? [$a, $b] : [$b, $a];
+    $st = $pdo->prepare('SELECT 1 FROM amistades WHERE usuario_a = ? AND usuario_b = ?');
+    $st->execute([$x, $y]);
+    return (bool) $st->fetchColumn();
+}
+
+try {
+    $pdo = new PDO(
+        "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4",
+        $dbUser,
+        $dbPass,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+} catch (PDOException $e) {
+    responder(false, 'No se pudo conectar con la base de datos.', [], 500);
+}

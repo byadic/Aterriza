@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aterriza | Acceso y registro</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#0f3460,#1a5276);font-family:Arial,sans-serif;color:#202833}
+    .contenedor{width:min(100%,520px);max-height:94vh;overflow:auto;background:#fff;border-radius:18px;padding:30px;box-shadow:0 18px 50px #06182c55}
+    h1{text-align:center;color:#0f3460;margin:0 0 8px}.subtitulo{text-align:center;color:#66717d;margin:0 0 24px}
+    .botones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+    button{border:0;border-radius:10px;padding:13px 10px;font-size:15px;font-weight:bold;cursor:pointer}
+    .tab{background:#eaf0f6;color:#0f3460}.tab.activo,.enviar{background:#0f3460;color:#fff}.formulario[hidden]{display:none}
+    .campo{margin-top:13px}label{display:block;font-weight:bold;font-size:14px;margin:0 0 6px}input,select{width:100%;padding:12px;border:1px solid #cbd4df;border-radius:9px;font-size:15px;background:white}input:focus,select:focus{outline:2px solid #0f346044;border-color:#0f3460}
+    .fila{display:grid;grid-template-columns:1fr 1fr;gap:12px}.enviar{width:100%;margin-top:20px}.mensaje{margin-top:15px;padding:11px;border-radius:8px;font-size:14px;display:none}.mensaje.ok{display:block;background:#e8f7ee;color:#176638}.mensaje.error{display:block;background:#fdecec;color:#a12424}
+    .nota{text-align:center;color:#75808b;font-size:12px;margin:18px 0 0;line-height:1.5}
+    @media(max-width:480px){.contenedor{padding:22px}.fila{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="contenedor">
+    <h1>Bienvenido a Aterriza</h1>
+    <p class="subtitulo">Inicia sesión o crea tu cuenta para continuar.</p>
+    <div class="botones">
+      <button type="button" class="tab activo" id="btnLogin" aria-controls="formLogin" aria-pressed="true">Iniciar sesión</button>
+      <button type="button" class="tab" id="btnRegistro" aria-controls="formRegistro" aria-pressed="false">Crear usuario</button>
+    </div>
+
+    <form id="formLogin" class="formulario">
+      <div class="campo"><label for="loginCorreo">Correo electrónico</label><input type="email" id="loginCorreo" name="correo" autocomplete="email" required></div>
+      <div class="campo"><label for="loginPassword">Contraseña</label><input type="password" id="loginPassword" name="password" autocomplete="current-password" required></div>
+      <button class="enviar" type="submit">Entrar</button>
+    </form>
+
+    <form id="formRegistro" class="formulario" hidden>
+      <div class="campo"><label for="nombre">Nombre completo</label><input type="text" id="nombre" name="nombre" autocomplete="name" maxlength="100" required></div>
+      <div class="fila">
+        <div class="campo"><label for="edad">Edad</label><input type="number" id="edad" name="edad" min="18" max="120" required></div>
+        <div class="campo"><label for="sexo">Sexo</label><select id="sexo" name="sexo" required><option value="">Selecciona</option><option value="Femenino">Femenino</option><option value="Masculino">Masculino</option><option value="Otro">Otro</option><option value="Prefiero no decirlo">Prefiero no decirlo</option></select></div>
+      </div>
+      <div class="campo"><label for="origen">¿De dónde eres? (ciudad, departamento o país)</label><input type="text" id="origen" name="origen" maxlength="150" placeholder="Ej. Oruro, Bolivia" required></div>
+      <div class="campo"><label for="registroCorreo">Correo electrónico</label><input type="email" id="registroCorreo" name="correo" autocomplete="email" required></div>
+      <div class="fila">
+        <div class="campo"><label for="registroPassword">Crear contraseña</label><input type="password" id="registroPassword" name="password" autocomplete="new-password" minlength="8" required></div>
+        <div class="campo"><label for="confirmarPassword">Confirmar contraseña</label><input type="password" id="confirmarPassword" name="confirmar_password" autocomplete="new-password" minlength="8" required></div>
+      </div>
+      <button class="enviar" type="submit">Crear cuenta</button>
+    </form>
+    <div id="mensaje" class="mensaje" role="status" aria-live="polite"></div>
+    <p class="nota">Tus datos se guardan en la base de datos Aterriza. La contraseña se almacena mediante un hash seguro en el servidor.</p>
+  </main>
+  <script>
+    const API_LOGIN = 'api/login.php';
+    const API_REGISTRO = 'api/registro.php';
+    const btnLogin=document.getElementById('btnLogin'), btnRegistro=document.getElementById('btnRegistro');
+    const formLogin=document.getElementById('formLogin'), formRegistro=document.getElementById('formRegistro');
+    const mensaje=document.getElementById('mensaje');
+    function mostrarFormulario(tipo){const login=tipo==='login';formLogin.hidden=!login;formRegistro.hidden=login;btnLogin.classList.toggle('activo',login);btnRegistro.classList.toggle('activo',!login);btnLogin.setAttribute('aria-pressed',String(login));btnRegistro.setAttribute('aria-pressed',String(!login));mensaje.className='mensaje';mensaje.textContent='';}
+    btnLogin.addEventListener('click',()=>mostrarFormulario('login'));
+    btnRegistro.addEventListener('click',()=>mostrarFormulario('registro'));
+    function mostrarMensaje(texto,tipo){mensaje.textContent=texto;mensaje.className='mensaje '+tipo;}
+    async function enviarFormulario(url,datos){try{const respuesta=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(datos)});const resultado=await respuesta.json();if(!respuesta.ok||!resultado.ok)throw new Error(resultado.mensaje||'No se pudo completar la operación.');mostrarMensaje(resultado.mensaje||'Operación realizada correctamente.','ok');if(resultado.redirect)window.location.href=resultado.redirect;}catch(error){mostrarMensaje(error.message||'No se pudo conectar con el servidor.','error');}}
+    formRegistro.addEventListener('submit',e=>{e.preventDefault();const password=document.getElementById('registroPassword').value;const confirmar=document.getElementById('confirmarPassword').value;if(password!==confirmar)return mostrarMensaje('Las contraseñas no coinciden.','error');enviarFormulario(API_REGISTRO,{nombre:document.getElementById('nombre').value.trim(),edad:Number(document.getElementById('edad').value),sexo:document.getElementById('sexo').value,origen:document.getElementById('origen').value.trim(),correo:document.getElementById('registroCorreo').value.trim(),password});});
+    formLogin.addEventListener('submit',e=>{e.preventDefault();enviarFormulario(API_LOGIN,{correo:document.getElementById('loginCorreo').value.trim(),password:document.getElementById('loginPassword').value});});
+  </script>
+</body>
+</html>

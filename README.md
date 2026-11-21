@@ -9,3 +9,7 @@ Los valores `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` y `DB_PORT` tienen priori
 ## Base de datos
 
 Primero crea la base de datos en el proveedor y luego importa `database/aterriza.sql` dentro de ella. El archivo crea las tablas y agrega datos de ejemplo; ejecútalo una sola vez por base de datos.
+
+## Cliente y API adicionales
+
+El repositorio también incluye páginas HTML en la raíz y endpoints en `api/`, con sus migraciones en esa carpeta. Para ejecutarlos con XAMPP, configura la raíz web en la carpeta del repositorio. La imagen Docker existente sigue sirviendo `public/` como raíz; no publica estas páginas adicionales.
